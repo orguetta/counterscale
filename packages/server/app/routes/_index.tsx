@@ -2,6 +2,7 @@ import { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction, Form, useActionDa
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { getUser, login, isAuthEnabled } from "~/lib/auth";
+import { isAccessEnabled } from "~/lib/access";
 
 export const meta: MetaFunction = () => {
     return [
@@ -14,9 +15,11 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     const env = context.cloudflare.env;
     const user = await getUser(request, env);
     const authEnabled = isAuthEnabled(env);
-    
+    // With Cloudflare Access, the login is handled by Access, not by a password form
+    const accessEnabled = isAccessEnabled(env);
+
     // Return auth status to conditionally render the login form
-    return { user, authEnabled };
+    return { user, authEnabled, accessEnabled };
 }
 
 export async function action({ request, context }: ActionFunctionArgs) {
@@ -42,7 +45,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
 }
 
 export default function Index() {
-    const { user, authEnabled } = useLoaderData<typeof loader>();
+    const { user, authEnabled, accessEnabled } = useLoaderData<typeof loader>();
     const actionData = useActionData<typeof action>();
     const navigation = useNavigation();
     const isSubmitting = ["submitting", "loading"].includes(navigation.state);
@@ -60,17 +63,17 @@ export default function Index() {
                         Welcome to Counterscale
                     </h1>
                     <p className="text-gray-600">
-                    {!authEnabled 
-                        ? "Access your analytics dashboard." 
-                        : user?.authenticated 
-                            ? "Continue to access your analytics dashboard." 
+                    {!authEnabled
+                        ? "Access your analytics dashboard."
+                        : (user?.authenticated || accessEnabled)
+                            ? "Continue to access your analytics dashboard."
                             : "Enter your password to access the dashboard"
                     }
                     </p>
                 </div>
-                
-                {/* When auth is disabled or user is already authenticated, show dashboard button */}
-                {(!authEnabled || user?.authenticated) ? (
+
+                {/* When auth is disabled, user is authenticated, or Access handles login, show dashboard button */}
+                {(!authEnabled || user?.authenticated || accessEnabled) ? (
                     <Button asChild className="w-full">
                         <a href="/dashboard">Go to Dashboard</a>
                     </Button>

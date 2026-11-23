@@ -125,7 +125,7 @@ describe("loader function", () => {
             mockRequest,
             mockContext.cloudflare.env,
         );
-        expect(result).toEqual({ user: mockUser, authEnabled: true });
+        expect(result).toEqual({ user: mockUser, authEnabled: true, accessEnabled: false });
     });
 
     test("should return { authenticated: false } user when not authenticated", async () => {
@@ -156,7 +156,7 @@ describe("loader function", () => {
             mockRequest,
             mockContext.cloudflare.env,
         );
-        expect(result).toEqual({ user: { authenticated: false }, authEnabled: true });
+        expect(result).toEqual({ user: { authenticated: false }, authEnabled: true, accessEnabled: false });
     });
 });
 

@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { createJWTCookie, clearJWTCookie } from "./session";
 import { User } from "./types";
+import { isAccessEnabled, verifyAccessJWT } from "./access";
 
 /**
  * Checks if authentication is enabled based on environment variables
@@ -12,7 +13,12 @@ export function isAuthEnabled(env: Env): boolean {
     if (env.CF_AUTH_ENABLED === "false") {
         return false;
     }
-    
+
+    // Cloudflare Access configured: protection is on, no password required
+    if (isAccessEnabled(env)) {
+        return true;
+    }
+
     // Explicitly enabled
     if (env.CF_AUTH_ENABLED === "true") {
         // Require both secrets to be present for auth to work
@@ -90,6 +96,12 @@ export async function getUser(request: Request, env: Env): Promise<User> {
     // If auth is disabled, user is always authenticated
     if (!isAuthEnabled(env)) {
         return { authenticated: true };
+    }
+
+    // A request that passed Cloudflare Access carries a verified identity
+    const accessIdentity = await verifyAccessJWT(request, env);
+    if (accessIdentity) {
+        return { authenticated: true, email: accessIdentity.email };
     }
 
     try {

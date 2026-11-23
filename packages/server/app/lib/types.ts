@@ -15,4 +15,6 @@ export interface SearchFilters {
 
 export interface User {
     authenticated: boolean;
+    /** Set when the user signed in through Cloudflare Access */
+    email?: string;
 }
